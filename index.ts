@@ -1,7 +1,11 @@
 import { verify } from './login'
+import { decode } from './storekit2'
 import { Service } from 'hub-service'
 interface Login {
   token: string
   app: string
 }
-new Service().post('apple/login', (body: Login) => verify(body.token, body.app)).start()
+new Service()
+  .post('apple/login', (body: Login) => verify(body.token, body.app))
+  .post('apple/storekit2', decode)
+  .start()
