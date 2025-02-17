@@ -7,5 +7,6 @@ interface Login {
 }
 new Service()
   .post('apple/login', (body: Login) => verify(body.token, body.app))
+  .post('apple/login/lite', (body: Login) => verify(body.token, body.app).then(a => a?.sub))
   .post('apple/storekit2', decode)
   .start()
