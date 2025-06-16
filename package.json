@@ -11,6 +11,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
+    "channel": "v57/channel",
     "hub-service": "v57/hub-service",
     "jsonwebtoken": "^9.0.2",
     "jsrsasign": "^11.1.0"
