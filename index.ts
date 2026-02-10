@@ -21,7 +21,7 @@ while (true) {
   }
 }
 
-new Service(address)
+new Service({ address, icon: { symbol: 'apple.logo', text: '' } })
   .post('apple/login', (body: Login) => verify(body.token, body.app))
   .post('apple/login/lite', (body: Login) => verify(body.token, body.app).then(a => a?.sub))
   .post('apple/storekit2', decode)
