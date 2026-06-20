@@ -3,16 +3,35 @@
   &nbsp;Login with Apple
 </h1>
 
-To install dependencies:
+> Made for [Hub](https://hub.v57.dev)
 
-```bash
-bun install
+Apple service allows you to verify Login with Apple and StoreKit2 transaction tokens without adding a all dependencies to your server, so it can stay lightweight. 
+
+Run from multiple machines or multiple processes for better performance and uptime
+
+Use Hub Launcher to easily scale it up, increasing number of running processes. As Bun/js/ts is a single core process
+
+## Login with Apple
+
+```ts
+const request: Login
+const userId: String = await service.send('apple/login/lite', request)
+```
+### Detailed login
+```ts
+const request: Login
+const userInfo: any = await service.send('apple/login', request)
+```
+## Verify and Decode StoreKit2 transaction
+```ts
+const request: string
+const transaction: any = await service.send('apple/storekit2', request)
 ```
 
-To run:
-
-```bash
-bun run index.ts
+## Types
+```ts
+interface Login {
+  token: string
+  app: string
+}
 ```
-
-This project was created using `bun init` in bun v1.2.3. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
