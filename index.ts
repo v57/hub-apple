@@ -1,6 +1,7 @@
 import { verify } from './login'
 import { decode } from './storekit2'
 import { Service } from 'hub-service'
+import { descriptions } from './descriptions'
 interface Login {
   token: string
   app: string
@@ -22,7 +23,7 @@ while (true) {
 }
 
 new Service({ address, name: 'Login with Apple', icon: { symbol: 'apple.logo', text: '' } })
-  .post('apple/login', (body: Login) => verify(body.token, body.app))
-  .post('apple/login/lite', (body: Login) => verify(body.token, body.app).then(a => a?.sub))
-  .post('apple/storekit2', decode)
+  .post('apple/login', (body: Login) => verify(body.token, body.app), descriptions.post['apple/login'])
+  .post('apple/login/lite', (body: Login) => verify(body.token, body.app).then(a => a?.sub), descriptions.post['apple/login/lite'])
+  .post('apple/storekit2', decode, descriptions.post['apple/storekit2'])
   .start()
