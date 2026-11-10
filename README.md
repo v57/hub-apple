@@ -43,8 +43,11 @@ interface Login {
 hub-apple checks Apple-signed data for your servers and services. `apple/login` and `apple/login/lite` verify a Sign in
 with Apple identity token: the signature against Apple's published keys (fetched from Apple and cached for an hour,
 fetched again when a token names a key it doesn't know), the issuer, the expiry, and that the token was issued for
-your app. `apple/storekit2` decodes a StoreKit 2 signed transaction or renewal info after checking that its
-certificate chain ends at Apple Root CA G3. It holds no secrets and keeps no state: the app's client id comes with
+your app. `apple/storekit2` verifies a StoreKit 2 signed transaction or renewal info as Apple's App Store Server
+Library does without online checks: the ES256 signature with the leaf certificate's key, a chain of exactly leaf,
+intermediate and root ending at Apple Root CA G3, Apple's OIDs on the leaf (`1.2.840.113635.100.6.11.1`) and the
+intermediate (`1.2.840.113635.100.6.2.1`), and every certificate valid at the payload's `signedDate`. It doesn't know
+your app, so check `bundleId` (and `environment`) in the answer. It holds no secrets and keeps no state: the app's client id comes with
 each call. Its only outgoing requests go to Apple for the Sign in with Apple keys.
 
 ### Installing it on a Hub
@@ -98,8 +101,9 @@ protocol, `Docs/Devices/protocol.md` section 15 in the Hub workspace).
   token's audience must match.
 - The login paths fail with `invalid jwt`, `key not found` (no Apple key with the token's key id), or the
   verification error for a bad signature, audience, issuer or expiry.
-- `apple/storekit2` fails when the JWS is malformed or its certificate chain isn't Apple's. It takes the JWS from
-  StoreKit 2 or from App Store Server Notifications.
+- `apple/storekit2` fails when the JWS is malformed, its signature doesn't match the leaf certificate, or its
+  certificate chain isn't Apple's. It takes the JWS from StoreKit 2 or from App Store Server Notifications. Check
+  `bundleId` in the answer: a genuine transaction from another app passes too.
 
 ### Permissions
 
@@ -134,4 +138,8 @@ bun test
 - `descriptions.test.ts` checks that every registered path and kind is described, and that the schemas stay in the
   subset hub-service accepts (hub-service `docs/api-descriptions.md`).
 
-`apple/storekit2` has no test yet. The tests make no network requests.
+- `storekit2.test.ts` builds a chain shaped like Apple's (with its OIDs) and trusts it through the verifier's
+  injectable roots: a forged payload with a valid chain, a swapped payload, the old one-certificate forge with the
+  real Apple root, untrusted roots, missing OIDs, dates at `signedDate`, and other algorithms are refused.
+
+The tests make no network requests.

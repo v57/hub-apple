@@ -55,7 +55,7 @@ export const descriptions: Descriptions = {
     'apple/storekit2': {
       title: 'Decode a StoreKit 2 transaction',
       description:
-        'Decodes a StoreKit 2 signed transaction or renewal info (JWS) after checking that its certificate chain ends at Apple Root CA G3, and answers the decoded payload. Fails when the JWS is malformed or the chain is not Apple\'s.',
+        'Verifies a StoreKit 2 signed transaction, renewal info or notification (JWS) as Apple\'s App Store Server Library does without online checks: ES256 signed by the leaf certificate, a leaf, intermediate and root chain to Apple Root CA G3 with Apple\'s OIDs, every certificate valid at signedDate. Answers the payload; the caller checks bundleId and environment. Fails with "invalid jws", "invalid certificate chain", "invalid jws signature" and similar.',
       inputSchema: { type: 'string', description: 'The signed transaction (JWS) from StoreKit 2 or App Store Server Notifications' },
       outputSchema: {
         type: 'object',
