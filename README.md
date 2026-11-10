@@ -42,7 +42,7 @@ interface Login {
 
 hub-apple checks Apple-signed data for your servers and services. `apple/login` and `apple/login/lite` verify a Sign in
 with Apple identity token: the signature against Apple's published keys (fetched from Apple and cached for an hour,
-fetched again when a token names a key it doesn't know), the issuer, the expiry, and that the token was issued for
+fetched again, at most once a minute, when a token names a key it doesn't know), the issuer, the expiry, and that the token was issued for
 your app. `apple/storekit2` verifies a StoreKit 2 signed transaction or renewal info as Apple's App Store Server
 Library does without online checks: the ES256 signature with the leaf certificate's key, a chain of exactly leaf,
 intermediate and root ending at Apple Root CA G3, Apple's OIDs on the leaf (`1.2.840.113635.100.6.11.1`) and the
@@ -99,7 +99,7 @@ protocol, `Docs/Devices/protocol.md` section 15 in the Hub workspace).
 
 - `token` is the identity token (a JWT) Sign in with Apple gave the app; `app` is the bundle id or Services ID the
   token's audience must match.
-- The login paths fail with `invalid jwt`, `key not found` (no Apple key with the token's key id), or the
+- The login paths fail with `app required` (no `app`: the audience check would be skipped), `invalid jwt`, `key not found` (no Apple key with the token's key id), or the
   verification error for a bad signature, audience, issuer or expiry.
 - `apple/storekit2` fails when the JWS is malformed, its signature doesn't match the leaf certificate, or its
   certificate chain isn't Apple's. It takes the JWS from StoreKit 2 or from App Store Server Notifications. Check
@@ -107,24 +107,15 @@ protocol, `Docs/Devices/protocol.md` section 15 in the Hub workspace).
 
 ### Permissions
 
-The service doesn't guard its paths (there is no `access.ts`) and doesn't mark them `public`, so the hub decides:
+Every path is marked `public` (`access.ts`): anyone may call them, also anonymous callers on `default-deny` hubs. Each
+one verifies data the caller presents against Apple's public keys and answers what that data already says; the
+service holds no secret and changes no state, so a grant would protect nothing. What an outsider can make it do is
+capped: a token naming an unknown Apple key refetches Apple's keys at most once a minute, and hub-service's
+per-caller rate limit applies.
 
-| Caller | On a `default-deny` hub (every new hub) | On an older `default-allow` hub |
-| --- | --- | --- |
-| An owner of the hub | allowed | allowed |
-| A caller an owner granted the path (or a prefix of it) | allowed | allowed |
-| Anyone else | refused | allowed, unless a permission group names the path |
-
-Most setups call these paths from a backend server, which then signs the user in. An owner lets that server call
-them with a grant (Hub protocol section 6):
-
-```
-hub/grant/add { "subject": { "key": "<the server's public key>" }, "object": { "prefix": "apple/" } }
-```
-
-`subject` may also be `{ "device": "<device id>" }`, `{ "group": "<group>" }` or `{ "everyone": true }`; `object` may
-be `{ "path": "apple/login/lite" }` for one path, or `{ "prefix": "apple/login" }` for both login paths. In the Hub
-app, the same is **Grant** on a device's **Access** list.
+Being allowed to ask is not trust: your backend trusts a login only because it passed its own `app`, and a purchase
+only after checking `bundleId` and `environment` in the answer. Call these paths from your backend, never trust a
+client that says it called them.
 
 ### Testing
 

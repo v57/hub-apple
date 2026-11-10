@@ -2,6 +2,7 @@ import { verify } from './login'
 import { decode } from './storekit2'
 import { Service } from 'hub-service'
 import { descriptions } from './descriptions'
+import { access } from './access'
 interface Login {
   token: string
   app: string
@@ -23,7 +24,7 @@ while (true) {
 }
 
 new Service({ address, name: 'Login with Apple', icon: { symbol: 'apple.logo', text: '' } })
-  .post('apple/login', (body: Login) => verify(body.token, body.app), descriptions.post['apple/login'])
-  .post('apple/login/lite', (body: Login) => verify(body.token, body.app).then(a => a?.sub), descriptions.post['apple/login/lite'])
-  .post('apple/storekit2', decode, descriptions.post['apple/storekit2'])
+  .post('apple/login', (body: Login) => verify(body.token, body.app), { ...access['apple/login'], ...descriptions.post['apple/login'] })
+  .post('apple/login/lite', (body: Login) => verify(body.token, body.app).then(a => a?.sub), { ...access['apple/login/lite'], ...descriptions.post['apple/login/lite'] })
+  .post('apple/storekit2', decode, { ...access['apple/storekit2'], ...descriptions.post['apple/storekit2'] })
   .start()
