@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken'
 
 const APPLE_KEYS_URL = 'https://appleid.apple.com/auth/keys'
 const DEFAULT_CACHE_TTL_MS = 1000 * 60 * 60
+/** A token naming an unknown key fetches Apple's keys again at most this often, so callers can't make every call a fetch */
+const DEFAULT_MIN_REFRESH_MS = 1000 * 60
 
 interface AppleJwk extends JsonWebKey {
   alg: string
@@ -28,6 +30,7 @@ interface CachedKeys {
 
 interface AppleVerifierOptions {
   cacheTtlMs?: number
+  minRefreshMs?: number
   fetch?: FetchLike
   now?: () => number
 }
@@ -73,11 +76,13 @@ async function fetchKeys(fetchImpl: FetchLike, now: () => number): Promise<Cache
 
 export function createAppleVerifier({
   cacheTtlMs = DEFAULT_CACHE_TTL_MS,
+  minRefreshMs = DEFAULT_MIN_REFRESH_MS,
   fetch: fetchImpl = input => fetch(input),
   now = Date.now,
 }: AppleVerifierOptions = {}) {
   let cached: CachedKeys | undefined
   let pending: Promise<CachedKeys> | undefined
+  let lastForcedAt: number | undefined
 
   async function loadKeys(forceRefresh = false) {
     if (!forceRefresh && cached && now() - cached.fetchedAt < cacheTtlMs) {
@@ -108,10 +113,15 @@ export function createAppleVerifier({
   async function keyAt(id: string) {
     const key = (await loadKeys()).get(id)
     if (key) return key
+    if (lastForcedAt !== undefined && now() - lastForcedAt < minRefreshMs) return undefined
+    lastForcedAt = now()
     return (await loadKeys(true)).get(id)
   }
 
   return async function verify(token: string, app: string) {
+    // Without an audience, jsonwebtoken skips the check and a token issued for any app would pass
+    if (typeof app !== 'string' || !app) throw 'app required'
+    if (typeof token !== 'string') throw 'invalid jwt'
     const decoded = jwt.decode(token, { complete: true })
     const id = typeof decoded === 'string' ? undefined : decoded?.header.kid
     if (!id) throw 'invalid jwt'

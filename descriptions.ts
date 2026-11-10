@@ -20,7 +20,7 @@ const login = {
   },
   required: ['token', 'app'],
 }
-const failures = 'Fails with "invalid jwt", "key not found" (no Apple key with the token\'s kid), or the verification error for a bad signature, audience, issuer or expiry.'
+const failures = 'Fails with "app required", "invalid jwt", "key not found" (no Apple key with the token\'s kid), or the verification error for a bad signature, audience, issuer or expiry.'
 
 export const descriptions: Descriptions = {
   post: {

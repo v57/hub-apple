@@ -122,4 +122,37 @@ describe('createAppleVerifier', () => {
     await expect(verify(token, app)).resolves.toMatchObject({ sub: key.kid })
     expect(fetchCalls).toBe(2)
   })
+
+  test('fetches again for unknown key ids at most once a minute', async () => {
+    const key = createSigningKey('kid-1')
+    const stranger = createSigningKey('kid-unknown')
+    let fetchCalls = 0
+    let currentTime = 0
+    const verify = createAppleVerifier({
+      fetch: async () => {
+        fetchCalls += 1
+        return jsonResponse({ keys: [key.publicJwk] })
+      },
+      now: () => currentTime,
+    })
+
+    await expect(verify(signToken(key.privateKey, key.kid), app)).resolves.toMatchObject({ sub: key.kid })
+    for (let i = 0; i < 5; i++) {
+      await expect(verify(signToken(stranger.privateKey, stranger.kid), app)).rejects.toBe('key not found')
+    }
+    expect(fetchCalls).toBe(2)
+
+    currentTime = 60_000
+    await expect(verify(signToken(stranger.privateKey, stranger.kid), app)).rejects.toBe('key not found')
+    expect(fetchCalls).toBe(3)
+  })
+
+  test('refuses a call without an app, which would skip the audience check', async () => {
+    const key = createSigningKey('kid-1')
+    const verify = createAppleVerifier({ fetch: async () => jsonResponse({ keys: [key.publicJwk] }) })
+    const token = signToken(key.privateKey, key.kid)
+    await expect(verify(token, undefined as unknown as string)).rejects.toBe('app required')
+    await expect(verify(token, '')).rejects.toBe('app required')
+    await expect(verify(token, 'com.other.app')).rejects.toThrow('jwt audience invalid')
+  })
 })
